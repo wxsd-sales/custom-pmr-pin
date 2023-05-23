@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link rel="icon" type="image/png" href="static/img/favicon.ico" />
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+      <script src="https://kit.fontawesome.com/f4a0e6453b.js" crossorigin="anonymous"></script>
+      <title>Custom PMR PIN</title>
+      <style>
+          .column.is-centered {
+              display: flex;
+              justify-content: center;
+          }
+
+          .my-hero-fullheight {
+            height: calc(100vh - 72px)
+          }
+
+          .is-vcentered {
+              display: flex;
+              flex-wrap: wrap;
+              align-content: center;
+          }
+
+          #hero-section {
+              border-radius: 6px;
+          }
+      </style>
+  </head>
+  <body>
+    <div id="header-box" class="columns is-centered is-primary has-background-primary mt-0">
+        <div class="column is-3 is-centered py-0"></div>
+        <div class="column is-centered py-1">
+            <h1 id='main-title' class="title">Custom PMR PIN</h1>
+        </div>
+        <div class="column is-3 is-centered py-0">
+            <div class="columns is-mobile is-centered my-1">
+                <div class="column is-narrow is-centered py-0">
+                    <button id="logout" class="button is-narrow is-rounded">
+                        <span class="pb-1">Logout</span>
+                        <span class="icon">
+                            <i class="fas fa-right-from-bracket"></i>
+                        </span>
+                    </button>
+                </div>
+                <div class="column py-1 pl-0">
+                    <figure class="image is-32x32">
+                        <img id="webex-avatar" class="is-rounded"></img>
+                    </figure>
+                </div>
+            </div>
+        </div>
+    </div>
+    <section id="hero-section" class="hero my-hero-fullheight">
+        <div class="columns is-mobile is-centered pt-5">
+            <div class="column is-narrow py-0">
+                <div id="main-notification" class="notification has-text-centered" style="visibility: hidden;">
+                    Notification
+                </div>
+            </div>
+        </div>
+        <div id="hero-content" class="hero-body has-text-centered pt-0">
+            <div id="main-div" class="container pb-6">
+            </div>
+        </div>
+    </section>
+  </body>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+  <script type="text/javascript">
+
+    function setErrorNotification(message, pinEle){
+        $('#main-notification').removeClass('is-success');
+        $('#main-notification').addClass('is-danger');
+        $('#main-notification').text(message);
+        $('#main-notification').css('visibility','visible');
+        if(pinEle){
+            pinEle.addClass('is-danger');
+        }
+    }
+
+    function setSuccessNotification(message, pinEle){
+        $('#main-notification').removeClass('is-danger');
+        $('#main-notification').addClass('is-success');
+        $('#main-notification').text(message);
+        $('#main-notification').css('visibility','visible');
+        if(pinEle){
+            pinEle.addClass('is-success');
+        }
+    }
+
+    function setRows(pmrs){
+        for(let i=0; i < pmrs.length; i++){
+            $('#main-div').append(
+            $('<div class="columns is-centered has-text-left has-text-weight-bold">').append(
+                $('<div class="column is-5">').append(
+                    $('<div>').text('PMR Address'),
+                    $(`<input class="input" id="pmr-${i}" type="text" disabled/>`).val(pmrs[i]["address"])
+                ),
+                $('<div class="column is-2">').append(
+                    $('<div style="height:24px;overflow:hidden;">').text('Current 7 Digit PIN'),
+                    $(`<input class="input" id="get-pin-${i}" type="text" disabled/>`).val(pmrs[i]["pin"])
+                ),
+                $('<div class="column is-2">').append(
+                    $('<div style="height:24px;overflow:hidden;">').text('New 7 Digit PIN'),
+                    $(`<input class="input" id="set-pin-${i}" type="text"/>`)
+                ),
+                $('<div class="column is-1" style="min-width:100px;">').append(
+                    $('<div style="min-height:24px;">').text(' '),
+                    $(`<button id="update-${i}" class="button is-rounded">`).append(
+                        $('<span class="">').text("Update")
+                    ).on('click', function(e){
+                        console.log($(this));
+                        let buttonId = $(this).attr('id').split('-')[1];
+                        let pinEle = $(`#set-pin-${buttonId}`);
+                        let newPin = pinEle.val();
+                        const regex = /^[0-9]*$/g;
+                        let found = newPin.match(regex);
+                        $('#main-notification').css('visibility','hidden');;
+                        pinEle.removeClass('is-danger');
+                        pinEle.removeClass('is-success');
+                        $(`#get-pin-${buttonId}`).removeClass('is-success');
+                        if(newPin.length == 7 && found){
+                            $(this).addClass('is-loading');
+                            $(`#clear-${buttonId}`).attr("disabled", true);
+                            $.post("/update", JSON.stringify({"pin":newPin, "address":$(`#pmr-${buttonId}`).val()}), function(result){
+                                let data = JSON.parse(result);
+                                console.log(data);
+                                $(`#update-${buttonId}`).removeClass('is-loading');
+                                $(`#clear-${buttonId}`).attr("disabled", false);
+                                if(data['error']){
+                                    setErrorNotification(data['error'], pinEle);
+                                } else {
+                                    $(`#get-pin-${buttonId}`).val(data['pin']);
+                                    setSuccessNotification(`PIN for ${data['address']} set to ${data['pin']}`, pinEle);
+                                }
+                            });
+                        } else {
+                            setErrorNotification('PIN must be exactly 7 numeric digits.', pinEle);
+                        }
+                    })
+                ),
+                $('<div class="column is-1" style="min-width:100px;">').append(
+                    $('<div style="min-height:24px;">').text(' '),
+                    $(`<button id="clear-${i}" class="button is-rounded">`).append(
+                        $('<span class="">').text("Clear")
+                    ).on('click', function(e){
+                        if (confirm("This will delete your current 7 digit PIN from the database. Continue?")) {
+                            let buttonId = $(this).attr('id').split('-')[1];
+                            let pinEle = $(`#set-pin-${buttonId}`);
+                            $('#main-notification').css('visibility','hidden');;
+                            pinEle.removeClass('is-danger');
+                            pinEle.removeClass('is-success');
+                            $(this).addClass('is-loading');
+                            $(`#update-${buttonId}`).attr("disabled", true);
+                            $.post("/update", JSON.stringify({"pin":null, "address":$(`#pmr-${buttonId}`).val()}), function(result){
+                                let data = JSON.parse(result);
+                                console.log(data);
+                                $(`#clear-${buttonId}`).removeClass('is-loading');
+                                $(`#update-${buttonId}`).attr("disabled", false);
+                                if(data['error']){
+                                    setErrorNotification(data['error']);
+                                } else {
+                                    $(`#get-pin-${buttonId}`).val(data['pin']);
+                                    setSuccessNotification(`PIN for ${data['address']} has been deleted.`);
+                                }
+                            });
+                        }
+                    })
+                )
+            )
+            )
+        }
+    }
+    
+    //TODO:LogoutButton does nothing.
+    $(document).ready(function() {
+        $.post("/", {}, function(result){
+            let data = JSON.parse(result);
+            console.log(data);
+            if(data['error']){
+                setErrorNotification(data['error']);
+            } else {
+                if(data['avatar']){
+                    $('#webex-avatar').attr("src", data['avatar']);
+                }
+                setRows(data['pmrs']);
+            }
+        });
+    });
+
+  </script>
+</html>
