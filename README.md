@@ -1,10 +1,10 @@
 # Custom PMR PIN
   
-A "Trade Floor" application that can receive PSTN calls (Webex Connect) with custom IVR, and direct the caller to a Webex Meeting (by way of Webex Calling).  Can receive SIP calls from devices using a static dial string and direct them to the Webex Meeting as well.
+Application that can receive PSTN calls (Webex Connect) with custom IVR, and direct the caller to a Webex PMR (by way of Webex Calling).  
 
-This project was developed to provide a couple of methods for audio users to join a Webex Meeting without using the native Webex Meeting clients, and without being prompted to enter meeting access codes, or host pins.
+This project was developed to provide a method for PSTN callers to join PMRs using a single static DID and a static 7 digit PIN, that can be customized by each user (per PMR).
 
-[![Vidcast Overview](https://user-images.githubusercontent.com/19175490/228853418-d6ded84d-5ee2-4d50-85d8-11b8d9db29c8.png)](https://app.vidcast.io/share/3f264756-563a-4294-82f7-193643932fb3)
+[![Vidcast Overview](https://github.com/wxsd-sales/custom-pmr-pin/assets/19175490/4861e7cd-7478-49cf-bada-223b30810691)](https://app.vidcast.io/share/3f264756-563a-4294-82f7-193643932fb3)
 
 
 ## Overview
@@ -25,9 +25,7 @@ The Server:
 
 
 ### Flow Diagram
-
-PSTN Flow  
-![PSTN Flow](https://user-images.githubusercontent.com/19175490/228858319-78a67ce5-d178-4770-a7f3-e8b50cbc6815.jpg)
+![PSTN Flow](https://github.com/wxsd-sales/custom-pmr-pin/assets/19175490/bb4d0ed9-7d57-4306-ae99-74d37337a562)
 
 
 ## Setup
