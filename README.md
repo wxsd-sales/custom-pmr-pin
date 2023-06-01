@@ -20,8 +20,6 @@ The Server:
 - Our python server.py is listening for POST requests from Webex Connect
 - Our python server.py is monitoring the Webex Calling Queue
 - Retrieving/Storing configuration information from/to MongoDB
-  
-
 
 
 ### Flow Diagram
@@ -36,7 +34,6 @@ The Server:
 - Developed on Python 3.8.1 & 3.8.3
 -   Other OS and Python versions may work but have not been tested
 - Mongo DB (i.e. Atlas)
-- Cisco Expressway
 - Webex Connect
 - Webex Calling
 - [Webex Integration](https://developer.webex.com/docs/integrations) with the following scopes:
