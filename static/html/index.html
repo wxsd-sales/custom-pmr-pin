@@ -168,6 +168,51 @@
                         }
                     })
                 )
+            ),
+            $('<div class="columns is-centered has-text-left has-text-weight-bold">').append(
+                $('<div class="column is-5">'),
+                $('<div class="column is-2">').append(
+                    $('<div style="height:24px;overflow:hidden;">').text('Current Host PIN'),
+                    $(`<input class="input" id="get-host-pin-${i}" type="text" disabled/>`).val(pmrs[i]["hostPin"])
+                ),
+                $('<div class="column is-2">').append(
+                    $('<div style="height:24px;overflow:hidden;">').text('New Host PIN'),
+                    $(`<input class="input" id="set-host-pin-${i}" type="text"/>`)
+                ),
+                $('<div class="column is-1" style="min-width:100px;">').append(
+                    $('<div style="min-height:24px;">').text(' '),
+                    $(`<button id="updatehost-${i}" class="button is-rounded">`).append(
+                        $('<span class="">').text("Update Host PIN")
+                    ).on('click', function(e){
+                        console.log($(this));
+                        let buttonId = $(this).attr('id').split('-')[1];
+                        let hostPinEle = $(`#set-host-pin-${buttonId}`);
+                        let newHostPin = hostPinEle.val();
+                        const regex = /^[0-9]*$/g;
+                        let found = newHostPin.match(regex);
+                        $('#main-notification').css('visibility','hidden');;
+                        hostPinEle.removeClass('is-danger');
+                        hostPinEle.removeClass('is-success');
+                        $(`#get-host-pin-${buttonId}`).removeClass('is-success');
+                        if(newHostPin.length == 4 && found){
+                            $(this).addClass('is-loading');
+                            $.post("/update", JSON.stringify({"hostPin":newHostPin, "address":$(`#pmr-${buttonId}`).val()}), function(result){
+                                let data = JSON.parse(result);
+                                console.log(data);
+                                $(`#updatehost-${buttonId}`).removeClass('is-loading');
+                                if(data['error']){
+                                    setErrorNotification(data['error'], hostPinEle);
+                                } else {
+                                    $(`#get-host-pin-${buttonId}`).val(data['hostPin']);
+                                    setSuccessNotification(`Host PIN for ${data['address']} set to ${data['hostPin']}`, hostPinEle);
+                                }
+                            });
+                        } else {
+                            setErrorNotification('Host PIN must be exactly 4 numeric digits.', hostPinEle);
+                        }
+                    })
+                ),
+                $('<div class="column is-1">')
             )
             )
         }
@@ -188,6 +233,10 @@
             }
         });
     });
+
+    $('#logout').on('click', function(e){
+        window.location = "/logout";
+    })
 
   </script>
 </html>

@@ -54,24 +54,26 @@ async def get_tokens(code):
         traceback.print_exc()
     return person
 
+def set_cookies(person):
+    cookie_max_age = 86400 #seconds
+    redirect = web.HTTPFound("/")
+    redirect.set_cookie('id', person['id'], max_age=cookie_max_age)
+    redirect.set_cookie('avatar', person.get('avatar',''), max_age=cookie_max_age)
+    redirect.set_cookie('displayName', person.get('displayName',''), max_age=cookie_max_age)
+    redirect.set_cookie('access_token', person.get('access_token',''), max_age=cookie_max_age)
+    return redirect
 
 async def get(request):
     response = "Error"
     redirect = None
     try:
-        logger.debug(dir(request))
         logger.info('Webex OAuth: {0}'.format(request.url))
         if request.query.get("code", None):
             code = request.query.get("code")
             person = await get_tokens(code)
             if person:
                 #redirect = "/"
-                redirect = web.HTTPFound("/")
-                cookie_max_age = 86400 #seconds
-                redirect.set_cookie('id', person['id'], max_age=cookie_max_age)
-                redirect.set_cookie('avatar', person.get('avatar',''), max_age=cookie_max_age)
-                redirect.set_cookie('displayName', person.get('displayName',''), max_age=cookie_max_age)
-                redirect.set_cookie('access_token', person.get('access_token',''), max_age=cookie_max_age)
+                redirect = set_cookies(person)
         else:
             authorize_url = 'https://webexapis.com/v1/authorize?client_id={0}&response_type=code&redirect_uri={1}&scope={2}'
             authorize_url = authorize_url.format(Settings.client_id, urllib.parse.quote_plus(Settings.redirect_uri), Settings.scopes)

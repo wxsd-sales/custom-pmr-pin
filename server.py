@@ -40,18 +40,34 @@ async def text(request):
 """
 
 async def main(request):
-    logger.debug('main hit.')
+    logger.info('main hit.')
     if request.cookies.get('access_token') and request.cookies.get('id'):
         return html_response('index.html')
     else:
         return web.HTTPFound("/oauth")
 
+async def logout(request):
+    logger.info('logout hit.')
+    if request.cookies.get('access_token') and request.cookies.get('id'):
+        redirect = web.HTTPFound("/logged_out")
+        redirect.del_cookie('id')
+        redirect.del_cookie('avatar')
+        redirect.del_cookie('displayName')
+        redirect.del_cookie('access_token')
+        return redirect
+    else:
+        return web.HTTPFound("/logged_out")
+
+async def logged_out(request):
+    logger.info('logged_out hit.')
+    return html_response('logged_out.html')
+
+
 async def setup(request):
     """
     Populate the UI with current PMR PIN mapping
     """
-    logger.debug('cookies:')
-    logger.debug(request.cookies)
+    logger.debug('cookies: {0}'.format(request.cookies))
     if request.cookies.get('access_token') and request.cookies.get('id'):
         my_pmr = await Spark(request.cookies.get('access_token')).get('https://webexapis.com/v1/meetingPreferences/personalMeetingRoom')
         pmr_details = {'address':my_pmr['sipAddress'], 'hostPin':my_pmr['hostPin'], "pin":"None"}
@@ -76,20 +92,37 @@ async def update(request):
         body = await request.json()
         body.update({"personId":request.cookies.get('id')})
         body.update({"dev":Settings.dev})
-        if body['pin'] != None:
-            logger.info('updating PIN DB: {0}'.format(body))
-            res = await db.update(body)
-            if res == "DuplicateKeyError":
-                response = {"error": "That PIN has already been taken." }
-            else:
-                response = {"pin": body['pin'], "address": body['address'] }
+        if body.get('hostPin'):
+            try:
+                logger.info('updating Host PIN: {0}'.format(body))
+                my_pmr = await Spark(request.cookies.get('access_token')).get('https://webexapis.com/v1/meetingPreferences/personalMeetingRoom')
+                my_pmr['hostPin'] = body['hostPin']
+                logger.info('updating PMR preferences to: {0}'.format(my_pmr))
+                updated_pmr = await Spark(request.cookies.get('access_token')).put('https://webexapis.com/v1/meetingPreferences/personalMeetingRoom', my_pmr)
+                logger.info('update PMR results: {0}'.format(updated_pmr))
+                if updated_pmr.get('errors'):
+                    response = {"error": updated_pmr['errors'][0].get('description') }
+                else:
+                    response = {"hostPin": body['hostPin'], "address": body['address'] }
+            except Exception as e:
+                logger.error(e)
+                traceback.print_exc()
+                response = {"error": str(e) }
         else:
-            body.pop('pin')
-            res = await db.delete_one(body)
-            if res:
-                response = {"pin": "None", "address": body['address'] }
+            if body['pin'] != None:
+                logger.info('updating PIN DB: {0}'.format(body))
+                res = await db.update(body)
+                if res == "DuplicateKeyError":
+                    response = {"error": "That PIN has already been taken." }
+                else:
+                    response = {"pin": body['pin'], "address": body['address'] }
             else:
-                response = {"error": "There is no PIN set for that PMR." }
+                body.pop('pin')
+                res = await db.delete_one(body)
+                if res:
+                    response = {"pin": "None", "address": body['address'] }
+                else:
+                    response = {"error": "There is no PIN set for that PMR." }
     else:
         response = {"error": "Please login again." }
     return web.Response(text=json.dumps(response))
@@ -152,6 +185,8 @@ def loop_in_thread(loop):
 if __name__ == '__main__':
     app = web.Application()
     app.add_routes([web.get('/oauth', oauth.get)])
+    app.add_routes([web.get('/logout', logout)])
+    app.add_routes([web.get('/logged_out', logged_out)])
     app.add_routes([web.get('/', main)])
     app.add_routes([web.post('/', setup)])
     app.add_routes([web.post('/update', update)])
